@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5fff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SonicClean2</title>
+<style>
+:root{--bg:#06121f;--card:#0d2238;--text:#e8f1fb;--muted:#8fa3b8;--a:#00b4ff;--b:#7c4dff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(circle at top,#0d2b4d,var(--bg));color:var(--text);padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);display:flex;justify-content:center}
+main{width:100%;max-width:440px;padding:20px 0 40px}
+h1{text-align:center;margin:6px 0 2px;font-size:28px;letter-spacing:.5px}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin:0 0 18px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.mode{background:var(--card);border:2px solid transparent;border-radius:16px;padding:14px 6px;text-align:center;cursor:pointer;color:var(--text)}
+.mode .e{font-size:28px;display:block}
+.mode small{color:var(--muted)}
+.mode.sel{border-color:var(--a);box-shadow:0 0 16px rgba(0,180,255,.35)}
+.card{background:var(--card);border-radius:20px;padding:20px;margin-bottom:14px;text-align:center}
+.ring{position:relative;width:190px;height:190px;margin:0 auto}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+#go{position:absolute;inset:18px;border-radius:50%;border:0;color:#fff;font-weight:800;font-size:20px;background:linear-gradient(135deg,var(--a),var(--b));cursor:pointer}
+#go.on{background:linear-gradient(135deg,#ff3b30,#ff8a5c)}
+.info{margin-top:12px;font-weight:600;min-height:22px}
+canvas{width:100%;height:60px;margin-top:10px;border-radius:10px;background:#081a2c}
+label{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;margin:10px 0 4px}
+input[type=range]{width:100%}
+.btn2{width:100%;padding:12px;border-radius:12px;border:0;background:var(--b);color:#fff;font-weight:700;font-size:15px;margin-top:8px;cursor:pointer}
+#qr{background:#fff;padding:8px;border-radius:12px;width:fit-content;margin:10px auto}
+.tip{color:var(--muted);font-size:12px;text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+  <h1>🔊 SonicClean2</h1>
+  <p class="sub">Limpia agua y polvo de tus altavoces</p>
+
+  <div class="modes" id="modes">
+    <button class="mode sel" data-m="water"><span class="e">💧</span>Agua<br><small>165 Hz</small></button>
+    <button class="mode" data-m="dust"><span class="e">🌫️</span>Polvo<br><small>Vibración</small></button>
+    <button class="mode" data-m="deep"><span class="e">🌊</span>Profundo<br><small>Barrido</small></button>
+  </div>
+
+  <div class="card">
+    <div class="ring">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#12304f" stroke-width="5"/>
+      <circle id="prog" cx="50" cy="50" r="46" fill="none" stroke="#00b4ff" stroke-width="5" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"/></svg>
+      <button id="go">INICIAR</button>
+    </div>
+    <div class="info" id="info">Elige un modo y pulsa iniciar</div>
+    <canvas id="viz" width="400" height="60"></canvas>
+  </div>
+
+  <div class="card">
+    <label><span>Duración</span><span><b id="dl">30</b> s</span></label>
+    <input type="range" id="dur" min="10" max="120" step="5" value="30">
+    <label><span>Volumen</span><span><b id="vl">80</b>%</span></label>
+    <input type="range" id="vol" min="10" max="100" step="5" value="80">
+  </div>
+
+  <div class="card">
+    <b>📲 Descargar / compartir</b>
+    <div id="qr"></div>
+    <div class="tip">Escanea el QR, abre el enlace y pulsa instalar</div>
+    <button class="btn2" id="install" style="display:none">Instalar app</button>
+    <div class="tip" id="ios" style="display:none">iPhone: Compartir → "Añadir a pantalla de inicio"</div>
+  </div>
+  <p class="tip">Sube el volumen del teléfono. Coloca el altavoz hacia abajo sobre un paño. Si oyes molestia, detén y baja el volumen.</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let mode='water',ctx,osc,gain,an,timers=[],running=false,raf;
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{
+  if(running)return;
+  document.querySelectorAll('.mode').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');mode=b.dataset.m;
+  $('info').textContent={water:'Tono fijo grave para expulsar agua',dust:'Pulsos para soltar polvo',deep:'Barrido 80–400 Hz para limpieza profunda'}[mode];
+});
+$('dur').oninput=e=>$('dl').textContent=e.target.value;
+$('vol').oninput=e=>{$('vl').textContent=e.target.value;if(gain)gain.gain.value=e.target.value/100};
+
+function start(){
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  osc=ctx.createOscillator();gain=ctx.createGain();an=ctx.createAnalyser();
+  osc.type=mode==='dust'?'square':'sine';
+  const vol=$('vol').value/100;gain.gain.value=vol;
+  osc.frequency.value=mode==='dust'?220:mode==='deep'?80:165;
+  osc.connect(gain);gain.connect(an);an.connect(ctx.destination);osc.start();
+
+  if(mode==='deep'){let d=1;timers.push(setInterval(()=>{let f=osc.frequency.value+d*4;if(f>=400)d=-1;if(f<=80)d=1;osc.frequency.value=f},40))}
+  if(mode==='dust'){let on=true;timers.push(setInterval(()=>{on=!on;gain.gain.value=on?vol*0.6:0},120))}
+
+  const total=+$('dur').value;let left=total;
+  running=true;$('go').textContent='DETENER';$('go').classList.add('on');
+  if(navigator.vibrate)navigator.vibrate(150);
+  const upd=()=>{$('info').textContent=`Limpiando… ${left}s`;$('prog').style.strokeDashoffset=289*(left/total)};
+  $('prog').style.transition='stroke-dashoffset 1s linear';upd();
+  timers.push(setInterval(()=>{left--;upd();if(left<=0)stop(true)},1000));
+  draw();
+}
+function stop(done){
+  timers.forEach(clearInterval);timers=[];cancelAnimationFrame(raf);
+  try{osc.stop();ctx.close()}catch(e){}
+  running=false;$('go').textContent='INICIAR';$('go').classList.remove('on');
+  $('prog').style.strokeDashoffset=289;
+  $('info').textContent=done?'✅ Limpieza completa. Repite si hace falta.':'Detenido';
+  if(done&&navigator.vibrate)navigator.vibrate([150,80,150]);
+}
+function draw(){
+  const c=$('viz'),g=c.getContext('2d'),buf=new Uint8Array(an.fftSize);
+  (function f(){an.getByteTimeDomainData(buf);g.clearRect(0,0,c.width,c.height);g.strokeStyle='#00b4ff';g.lineWidth=2;g.beginPath();
+    buf.forEach((v,i)=>{const x=i/buf.length*c.width,y=v/255*c.height;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();raf=requestAnimationFrame(f)})();
+}
+$('go').onclick=()=>running?stop(false):start();
+
+try{new QRCode($('qr'),{text:location.href.split('#')[0],width:150,height:150})}catch(e){}
+let dp;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('install').style.display='block'});
+$('install').onclick=async()=>{if(dp){dp.prompt();dp=null;$('install').style.display='none'}};
+if(/iphone|ipad/i.test(navigator.userAgent))$('ios').style.display='block';
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

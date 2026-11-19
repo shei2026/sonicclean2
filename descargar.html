@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5fff">
+<title>Descargar SonicClean2 (APK)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(circle at top,#0d2b4d,#06121f);color:#e8f1fb;padding:16px}
+.box{width:100%;max-width:420px;background:#0d2238;border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+img{width:96px;height:96px;border-radius:22px}
+h1{margin:12px 0 4px}
+p{color:#8fa3b8;font-size:14px;margin:4px 0 16px}
+a.btn{display:block;background:linear-gradient(135deg,#00b4ff,#7c4dff);color:#fff;text-decoration:none;font-weight:800;font-size:18px;padding:16px;border-radius:14px}
+#qr{background:#fff;padding:10px;border-radius:14px;width:fit-content;margin:18px auto 6px}
+ol{text-align:left;color:#8fa3b8;font-size:13px;padding-left:20px;margin-top:18px}
+li{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="box">
+  <img src="icons/icon-192.png" alt="SonicClean2">
+  <h1>SonicClean2</h1>
+  <p>Limpia agua y polvo de tus altavoces</p>
+  <a class="btn" id="dl" href="#">⬇ Descargar APK (Android)</a>
+  <div id="qr"></div>
+  <p>Escanea el QR con tu celular para descargar</p>
+  <ol>
+    <li>Pulsa Descargar o escanea el QR.</li>
+    <li>Abre el archivo descargado.</li>
+    <li>Si Android lo pide, permite "Instalar apps desconocidas".</li>
+    <li>Pulsa Instalar y abre SonicClean2.</li>
+  </ol>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const APK="https://github.com/shei2026/sonicclean/releases/latest/download/app-release.apk";
+document.getElementById('dl').href=APK;
+try{new QRCode(document.getElementById('qr'),{text:APK,width:170,height:170})}catch(e){}
+</script>
+</body>
+</html>
